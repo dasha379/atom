@@ -1,3 +1,0 @@
-/home/dasha/myCompiler/build/CMakeFiles/comp.dir
-/home/dasha/myCompiler/build/CMakeFiles/edit_cache.dir
-/home/dasha/myCompiler/build/CMakeFiles/rebuild_cache.dir
