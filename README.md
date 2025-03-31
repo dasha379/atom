@@ -13,7 +13,6 @@ cd atom
 mkdir build
 cmake -S . -B build
 cmake --build build
-./build/comp test.at
 ```
 
 comp is an executable file in the ./build directory.
