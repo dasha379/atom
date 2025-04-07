@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "Error: Input file is empty\n";
         return EXIT_FAILURE;
     }
-    
+
     Tokenizer tokenizer(std::move(contents));
     std::vector<Token> tokens = tokenizer.tokenize();
 
