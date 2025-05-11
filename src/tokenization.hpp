@@ -19,6 +19,8 @@ enum class TokenType{
     open_curly,
     close_curly,
     if_,
+    elif,
+    else_,
 };
 
 std::optional<int> bin_prec(TokenType type){
@@ -37,6 +39,7 @@ std::optional<int> bin_prec(TokenType type){
 struct Token {
     TokenType type;
     std::optional<std::string> value;
+    int line;
 };
 
 class Tokenizer{
@@ -62,6 +65,14 @@ class Tokenizer{
                     }
                     else if (buf == "if"){
                         tokens.push_back({.type = TokenType::if_});
+                        buf.clear();
+                    }
+                    else if (buf == "elif"){
+                        tokens.push_back({.type = TokenType::elif});
+                        buf.clear();
+                    }
+                    else if (buf == "else"){
+                        tokens.push_back({.type = TokenType::else_});
                         buf.clear();
                     }
                     else {
@@ -92,7 +103,7 @@ class Tokenizer{
                     while (peek().has_value()){
                         if (peek().value() == '*' && peek(1).has_value() && peek(1).value() == '/') break;
                         consume();
-                    }   
+                    }
                     if (peek().has_value()) consume();
                     if (peek().has_value()) consume();
                 }

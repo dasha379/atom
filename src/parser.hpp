@@ -3,6 +3,7 @@
 #include <variant>
 #include "arena.hpp"
 #include "tokenization.hpp"
+#include <string>
 
 struct nodeExpr;
 struct nodeTermParen;
@@ -60,12 +61,25 @@ struct nodeStmtLet{
 };
 
 struct nodeStmt;
+struct nodeIfPred;
 struct nodeScope{
     std::vector<nodeStmt*> stmts;
 };
 struct nodeStmtIf{
     nodeExpr* expr;
     nodeScope* scope;
+    std::optional<nodeIfPred*> pred;
+};
+struct nodeIfPredElif{
+    nodeExpr* expr;
+    nodeScope* scope;
+    std::optional<nodeIfPred*> pred;
+};
+struct nodeIfPredElse{
+    nodeScope* scope;
+};
+struct nodeIfPred{
+    std::variant<nodeIfPredElif*, nodeIfPredElse*> var;
 };
 
 struct nodeStmt{
@@ -77,8 +91,14 @@ struct nodeProg{
 
 class Parser{
 public:
-    inline explicit Parser(std::vector<Token> tokens) : m_tokens(std::move(tokens)), m_allocator(1024*1024*4) //4 mb
+    explicit Parser(std::vector<Token> tokens) : m_tokens(std::move(tokens)), m_allocator(1024*1024*4) //4 mb
     {}
+
+    void error_expected(const std::string& msg) const
+    {
+        std::cerr << "[Parse Error] Expected " << msg << " on line " << peek(-1).value().line << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     std::optional<nodeTerm*> parse_term(){
         if (peek().has_value() && peek().value().type == TokenType::int_lit){
@@ -181,6 +201,43 @@ public:
         return scope;
     }
 
+    std::optional<nodeIfPred*> parse_if_pred(){
+        if (try_consume(TokenType::elif)){
+            try_consume(TokenType::open_paren);
+            const auto elif = m_allocator.alloc<nodeIfPredElif>();
+            if (const auto expr = parse_expr()){
+               elif->expr = expr.value();
+            } else{
+                std::cerr << "expected expression\n";
+                exit(EXIT_FAILURE);
+            }
+            try_consume(TokenType::close_paren);
+            if (const auto scope = parse_scope()){
+                elif->scope = scope.value();
+            } else {
+                std::cerr << "expected scope\n";
+                exit(EXIT_FAILURE);
+            }
+            elif->pred = parse_if_pred(); // recursive
+            auto pred = m_allocator.alloc<nodeIfPred>();
+            pred->var = elif;
+            return pred;
+        }
+        if (try_consume(TokenType::else_)){
+            const auto else_pred = m_allocator.alloc<nodeIfPredElse>();
+            if (const auto scope = parse_scope()){
+                else_pred->scope = scope.value();
+            } else {
+                std::cerr << "expected scope\n";
+                exit(EXIT_FAILURE);
+            }
+            auto pred = m_allocator.alloc<nodeIfPred>();
+            pred->var = else_pred;
+            return pred;
+        }
+        return {};
+    }
+
     std::optional<nodeStmt*> parse_stmt(){
         while(peek().has_value()){
             if (peek().value().type == TokenType::_exit && peek(1).has_value() && peek(1).value().type == TokenType::open_paren){
@@ -268,6 +325,7 @@ public:
                     std::cerr << "invalid scope\n";
                     exit(EXIT_FAILURE);
                 }
+                stmt_if->pred = parse_if_pred();
                 auto stmt = m_allocator.alloc<nodeStmt>();
                 stmt->var = stmt_if;
                 return stmt;
@@ -294,10 +352,26 @@ private:
     size_t m_index = 0;
     [[nodiscard]] inline std::optional<Token> peek(int offset = 0) const {
         if (m_index + offset >= m_tokens.size()) return {};
-        else return m_tokens[m_index + offset];
+        return m_tokens[m_index + offset];
     }
     inline Token consume(){
         return m_tokens.at(m_index++);
+    }
+    Token try_consume_err(const TokenType type)
+    {
+        if (peek().has_value() && peek().value().type == type) {
+            return consume();
+        }
+        error_expected(std::to_string(type));
+        return {};
+    }
+
+    std::optional<Token> try_consume(const TokenType type)
+    {
+        if (peek().has_value() && peek().value().type == type) {
+            return consume();
+        }
+        return {};
     }
     ArenaAllocator m_allocator;
 };
