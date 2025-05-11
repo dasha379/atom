@@ -120,14 +120,12 @@ public:
             return term;
         }
         else if (peek().has_value() && peek().value().type == TokenType::open_paren){
-            auto expr = parse_expr();
+            const auto expr = parse_expr();
             if (!expr.has_value()){
-                std::cerr << "expected expression\n";
-                exit(EXIT_FAILURE);
+                error_expected("expression");
             }
             if (!(peek().has_value() && peek().value().type == TokenType::close_paren)) {
-                std::cerr << "expected ')'\n";
-                exit(EXIT_FAILURE);
+                error_expected("')'");
             }
             auto term_paren = m_allocator.alloc<nodeTermParen>();
             term_paren->expr = expr.value();
@@ -377,12 +375,12 @@ private:
     inline Token consume(){
         return m_tokens.at(m_index++);
     }
-    Token try_consume_err(const TokenType type)
+    Token try_consume_err(const TokenType type, const std::string& msg)
     {
         if (peek().has_value() && peek().value().type == type) {
             return consume();
         }
-        error_expected(std::to_string(type));
+        error_expected(msg);
         return {};
     }
 
