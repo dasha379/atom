@@ -36,6 +36,45 @@ std::optional<int> bin_prec(TokenType type){
     }
 }
 
+inline std::string to_string(const TokenType type){
+    switch(type){
+        case TokenType::_exit:
+            return "exit";
+        case TokenType::int_lit:
+            return "integer literal";
+        case TokenType::semi:
+            return ";";
+        case TokenType::open_paren:
+            return "(";
+        case TokenType::close_paren:
+            return ")";
+        case TokenType::ident:
+            return "identifier";
+        case TokenType::let:
+            return "let";
+        case TokenType::eq:
+            return "=";
+        case TokenType::plus:
+            return "+";
+        case TokenType::star:
+            return "*";
+        case TokenType::minus:
+            return "-";
+        case TokenType::fslash:
+            return "/";
+        case TokenType::open_curly:
+            return "{";
+        case TokenType::close_curly:
+            return "}";
+        case TokenType::if_:
+            return "if";
+        case TokenType::elif:
+            return "elif";
+        case TokenType::else_:
+            return "else";
+    }
+}
+
 struct Token {
     TokenType type;
     std::optional<std::string> value;

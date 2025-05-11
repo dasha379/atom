@@ -375,12 +375,12 @@ private:
     inline Token consume(){
         return m_tokens.at(m_index++);
     }
-    Token try_consume_err(const TokenType type, const std::string& msg)
+    Token try_consume_err(const TokenType type)
     {
         if (peek().has_value() && peek().value().type == type) {
             return consume();
         }
-        error_expected(msg);
+        error_expected(to_string(type));
         return {};
     }
 
