@@ -126,7 +126,7 @@ public:
     {
         struct StmtVisitor{
             Generator& gen; // a pointer
-            void operator() (const nodeStmtExit* stmt_exit) const { // first const - we cant change the input pointer to the obiect, the second const - we cant change the object which method we are calling (in this case it is gen i guess)
+            void operator() (const nodeStmtExit* stmt_exit) const { // first const - we cant change the input pointer to the object, the second const - we cant change the object which method we are calling (in this case it is gen i guess)
                 gen.gen_expr(stmt_exit->expr);
                 gen.m_output << "    mov rax, 60\n";
                 gen.pop("rdi");
@@ -144,6 +144,21 @@ public:
                 gen.m_vars.push_back({ .name = stmt_let->ident.value.value(), .stack_loc = gen.m_stack_size });
                 gen.gen_expr(stmt_let->expr);
             }
+
+            void operator() (const nodeStmtAssign* assign) const {
+                auto it = std::ranges::find_if(gen.m_vars, [&](const Var& var){
+                    return (var.name == assign->ident.value.value());
+                });
+                if (it == gen.m_vars.cend()){
+                    std::cerr << "undefined variable: " << assign->ident.value.value() << '\n';
+                    exit(EXIT_FAILURE);
+                }
+                gen.gen_expr(assign->expr);
+                gen.pop("rax");
+                gen.m_output << "    mov [rsp + " << (gen.m_stack_size - it->stack_loc - 1) * 8 << "], rax\n";
+
+            }
+
             void operator() (const nodeScope* scope) const{
                 gen.gen_scope(scope);
             }
@@ -152,15 +167,20 @@ public:
                 gen.pop("rax");
                 std::string label = gen.create_label();
                 gen.m_output << "    test rax, rax\n";
-                gen.m_output << "    jnz" << label << '\n';
+                gen.m_output << "    jz " << label << '\n';
                 gen.gen_scope(stmt_if->scope);
-                gen.m_output << label << ':\n';
-                if (stmt_if->pred.has_value()){
-                    const std::string end_label = gen.create_label();
-                    gen.gen_if_pred(stmt_if->pred.value(), end_label);
-                    gen.m_output << end_label << ':\n';
+                std::optional<std::string> end_label;
+                if (stmt_if->pred.has_value()) { // если после else есть еще elif etc то мы их перепрыгиваем в силу того что первый else выполняется
+                    end_label = gen.create_label();
+                    gen.m_output << "    jmp " << end_label.value() << '\n';
+                    gen.m_output << label << ':\n';
+                    gen.gen_if_pred(stmt_if->pred.value(), end_label.value());
+                    gen.m_output << end_label.value() << ':\n';
                 }
-
+                else{
+                    gen.m_output << label << '\n';
+                }
+                gen.m_output << "    ;; /if\n";
             }
         };
 

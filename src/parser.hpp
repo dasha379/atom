@@ -81,9 +81,13 @@ struct nodeIfPredElse{
 struct nodeIfPred{
     std::variant<nodeIfPredElif*, nodeIfPredElse*> var;
 };
+struct nodeStmtAssign{
+    Token ident;
+    nodeExpr* expr {};
+};
 
 struct nodeStmt{
-    std::variant<nodeStmtExit*, nodeStmtLet*, nodeScope*, nodeStmtIf*> var;
+    std::variant<nodeStmtExit*, nodeStmtLet*, nodeScope*, nodeStmtIf*, nodeStmtAssign*> var;
 };
 struct nodeProg{
     std::vector<nodeStmt*> stmts;
@@ -286,6 +290,22 @@ public:
                 }
                 auto stmt = m_allocator.alloc<nodeStmt>();
                 stmt->var = stmt_let;
+                return stmt;
+            }
+            // situation like x = 1: (переприсваивание мб)
+            if (peek().has_value() && peek().value().type == TokenType::ident && peek(1).has_value() && peek(1).value().type == TokenType::eq){
+                const auto assign = m_allocator.alloc<nodeStmtAssign>();
+                assign->ident = consume();
+                consume();
+                if (const auto expr = parse_expr()){
+                    assign->expr = expr.value();
+                } else {
+                    std::cerr << "expected expression\n";
+                    exit(EXIT_FAILURE);
+                }
+                try_consume(TokenType::semi);
+                auto stmt = m_allocator.alloc<nodeStmt>();
+                stmt->var = assign;
                 return stmt;
             }
             else if (peek().has_value() && peek().value().type == TokenType::open_curly){
