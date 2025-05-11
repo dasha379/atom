@@ -58,8 +58,18 @@ struct nodeStmtLet{
     Token ident;
     nodeExpr* expr{};
 };
+
+struct nodeStmt;
+struct nodeScope{
+    std::vector<nodeStmt*> stmts;
+};
+struct nodeStmtIf{
+    nodeExpr* expr;
+    nodeScope* scope;
+};
+
 struct nodeStmt{
-    std::variant<nodeStmtExit*, nodeStmtLet*> var;
+    std::variant<nodeStmtExit*, nodeStmtLet*, nodeScope*, nodeStmtIf*> var;
 };
 struct nodeProg{
     std::vector<nodeStmt*> stmts;
@@ -139,13 +149,13 @@ public:
                 multi->lhs = expr_lhs2;
                 multi->rhs = expr_rhs.value();
                 expr->var = multi;
-            } else if (op.type == TokenType::sub){
+            } else if (op.type == TokenType::minus){
                 auto sub = m_allocator.alloc<nodeBinExprSub>();
                 expr_lhs2->var = expr_lhs->var;
                 sub->lhs = expr_lhs2;
                 sub->rhs = expr_rhs.value();
                 expr->var = sub;
-            } else if (op.type == TokenType::div){
+            } else if (op.type == TokenType::fslash){
                 auto div = m_allocator.alloc<nodeBinExprDiv>();
                 expr_lhs2->var = expr_lhs->var;
                 div->lhs = expr_lhs2;
@@ -155,6 +165,20 @@ public:
             expr_lhs->var = expr;
         }
         return expr_lhs;
+    }
+
+    std::optional<nodeScope*> parse_scope(){
+        auto scope = m_allocator.alloc<nodeScope>();
+        while (auto stmt = parse_stmt()){
+            scope->stmts.push_back(stmt.value());
+        }
+        if (peek().has_value() && peek().value().type == TokenType::close_curly){
+            consume();
+        } else {
+            std::cerr << "expected '}'\n";
+            exit(EXIT_FAILURE);
+        }
+        return scope;
     }
 
     std::optional<nodeStmt*> parse_stmt(){
@@ -205,6 +229,47 @@ public:
                 }
                 auto stmt = m_allocator.alloc<nodeStmt>();
                 stmt->var = stmt_let;
+                return stmt;
+            }
+            else if (peek().has_value() && peek().value().type == TokenType::open_curly){
+                if (auto scope = parse_scope()) {
+                    auto stmt = m_allocator.alloc<nodeStmt>();
+                    stmt->var = scope.value();
+                    return stmt;
+                } else{
+                    std::cerr << "invalid scope'\n";
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else if (peek().has_value() && peek().value().type == TokenType::if_){
+                consume();
+                if (peek().has_value() && peek().value().type == TokenType::open_paren){
+                    consume();
+                } else {
+                    std::cerr << "expected '('\n";
+                    exit(EXIT_FAILURE);
+                }
+                auto stmt_if = m_allocator.alloc<nodeStmtIf>();
+                if (auto expr = parse_expr()){
+                    stmt_if->expr = expr.value();
+                } else {
+                    std::cerr << "expected condition\n";
+                    exit(EXIT_FAILURE);
+                }
+                if (peek().has_value() && peek().value().type == TokenType::close_paren){
+                    consume();
+                } else {
+                    std::cerr << "expected ')'\n";
+                    exit(EXIT_FAILURE);
+                }
+                if (auto scope = parse_scope()){
+                    stmt_if->scope = scope.value();
+                } else {
+                    std::cerr << "invalid scope\n";
+                    exit(EXIT_FAILURE);
+                }
+                auto stmt = m_allocator.alloc<nodeStmt>();
+                stmt->var = stmt_if;
                 return stmt;
             }
             else return {};

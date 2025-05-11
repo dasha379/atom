@@ -14,16 +14,19 @@ enum class TokenType{
     eq,
     plus,
     star,
-    sub,
-    div,
+    minus,
+    fslash,
+    open_curly,
+    close_curly,
+    if_,
 };
 
 std::optional<int> bin_prec(TokenType type){
     switch(type){
-        case TokenType::sub:
+        case TokenType::minus:
         case TokenType::plus:
             return 0;
-        case TokenType::div:
+        case TokenType::fslash:
         case TokenType::star:
             return 1;
         default:
@@ -52,17 +55,18 @@ class Tokenizer{
                     if (buf == "exit"){
                         tokens.push_back({.type = TokenType::_exit});
                         buf.clear();
-                        continue;
                     }
                     else if (buf == "let"){
                         tokens.push_back({.type = TokenType::let});
                         buf.clear();
-                        continue;
+                    }
+                    else if (buf == "if"){
+                        tokens.push_back({.type = TokenType::if_});
+                        buf.clear();
                     }
                     else {
                         tokens.push_back({.type = TokenType::ident, .value = buf});
                         buf.clear();
-                        continue;
                     }
                 }
                 else if (std::isdigit(peek().value())) {
@@ -76,12 +80,10 @@ class Tokenizer{
                 else if (peek().value() == '('){
                     consume();
                     tokens.push_back({.type = TokenType::open_paren});
-                    continue;
                 }
                 else if (peek().value() == ')'){
                     consume();
                     tokens.push_back({.type = TokenType::close_paren});
-                    continue;
                 }
                 else if (peek().value() == ';'){
                     consume();
@@ -91,31 +93,33 @@ class Tokenizer{
                 else if (peek().value() == '='){
                     consume();
                     tokens.push_back({.type = TokenType::eq});
-                    continue;
                 }
                 else if (peek().value() == '+'){
                     consume();
                     tokens.push_back({.type = TokenType::plus});
-                    continue;
                 }
                 else if (peek().value() == '*'){
                     consume();
                     tokens.push_back({.type = TokenType::star});
-                    continue;
                 }
                 else if (peek().value() == '-'){
                     consume();
-                    tokens.push_back({.type = TokenType::sub});
-                    continue;
+                    tokens.push_back({.type = TokenType::minus});
                 }
                 else if (peek().value() == '/'){
                     consume();
-                    tokens.push_back({.type = TokenType::div});
-                    continue;
+                    tokens.push_back({.type = TokenType::fslash});
+                }
+                else if (peek().value() == '{'){
+                    consume();
+                    tokens.push_back({.type = TokenType::open_curly});
+                }
+                else if (peek().value() == '}'){
+                    consume();
+                    tokens.push_back({.type = TokenType::close_curly});
                 }
                 else if (std::isspace(peek().value())){
                     consume();
-                    continue;
                 }
                 else {
                     std::cerr << "you messed up!" << '\n';
