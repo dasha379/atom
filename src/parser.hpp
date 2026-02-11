@@ -1,6 +1,7 @@
 #pragma once
 
 #include <variant>
+#include <iostream>
 #include "arena.hpp"
 #include "tokenization.hpp"
 #include <string>

@@ -12,7 +12,7 @@
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         std::cerr << "incorrect usage\n";
-        std::cerr << "comp <input.at>\n";
+        std::cerr << "atom <input.at>\n";
         return EXIT_FAILURE;
     }
 
@@ -47,5 +47,5 @@ int main(int argc, char* argv[]) {
 
     system("nasm -felf64 out.asm");
     system("ld -o out out.o");
-    return EXIT_SUCCESS;
+    return 0;
 }
