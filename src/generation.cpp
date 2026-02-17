@@ -1,5 +1,7 @@
-#include "parser.hpp"
 #include "generation.hpp"
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
 
 Generator::Generator(nodeProg prog) : m_prog(std::move(prog)) {} //constructor:0
 
@@ -38,21 +40,24 @@ void Generator::gen_bin_expr(const nodeBinExpr* bin_expr)
         void operator() (const nodeBinExprSub* sub) const{
             gen.gen_expr(sub->rhs);
             gen.gen_expr(sub->lhs);
+            gen.pop("rbx");
             gen.pop("rax");
-            gen.m_output << "    sub rax, rbx\n";
-            gen.push("rax");
+            gen.m_output << "    sub rbx, rax\n";
+            gen.push("rbx");
         }
         void operator() (const nodeBinExprAdd* add) const{
             gen.gen_expr(add->rhs);
             gen.gen_expr(add->lhs);
+            gen.pop("rbx");
             gen.pop("rax");
-            gen.m_output << "    add rax, rbx\n";
-            gen.push("rax");
+            gen.m_output << "    add rbx, rax\n";
+            gen.push("rbx");
         }
         void operator() (const nodeBinExprMulti* multi) const{
             gen.gen_expr(multi->rhs);
             gen.gen_expr(multi->lhs);
             gen.pop("rax");
+            gen.pop("rbx");
             gen.m_output << "    mul rbx\n";
             gen.push("rax");
         }
@@ -60,6 +65,7 @@ void Generator::gen_bin_expr(const nodeBinExpr* bin_expr)
             gen.gen_expr(div->rhs);
             gen.gen_expr(div->lhs);
             gen.pop("rax");
+            gen.pop("rbx");
             gen.m_output << "    div rbx\n";
             gen.push("rax");
         }
@@ -104,7 +110,7 @@ void Generator::gen_if_pred(const nodeIfPred* pred, const std::string& end_label
             gen.gen_scope(elif->scope);
             gen.m_output << "    jmp " << end_label << '\n';
             if (elif->pred.has_value()){
-                gen.m_output << label << ':\n';
+                gen.m_output << label << ":\n";
                 gen.gen_if_pred(elif->pred.value(), end_label);
             }
         }
@@ -167,9 +173,9 @@ void Generator::gen_stmt(const nodeStmt* stmt)
             if (stmt_if->pred.has_value()) {
                 end_label = gen.create_label();
                 gen.m_output << "    jmp " << end_label.value() << '\n';
-                gen.m_output << label << ':\n';
+                gen.m_output << label << ":\n";
                 gen.gen_if_pred(stmt_if->pred.value(), end_label.value());
-                gen.m_output << end_label.value() << ':\n';
+                gen.m_output << end_label.value() << ":\n";
             }
             else{
                 gen.m_output << label << '\n';
