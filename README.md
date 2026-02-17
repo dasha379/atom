@@ -1,8 +1,13 @@
 # Atom C++ Compiler
 
-Atom is my test programming language. It is really simple. 
+Минималистичный и очень простой компилятор, реализованный на языке C++. \
+Поддерживает:
+- инициализацию
+- переприсваивание
+- условия
+- арифметические операции
 
-## Building
+## Сборка
 
 
 ```bash
@@ -13,7 +18,43 @@ cmake -S . -B build
 cmake --build build
 ```
 
-## Structure
+## Запуск
+```bash
+cd build
+# копиляция программы
+./atom ../test.at
+# запуск скомпилированного файла
+./out
+# просмотр кода возврата
+echo $?
+```
 
-**src/tokenization.hpp** is a file providing a lexical analysis. Lexer takes a stream of characters as input and produces a stream of tokens as output. \
-**src/parser.hpp** provides a syntax analysis - analyzes the syntactic structure of the given token stream to verify whether the source code was syntactically correct according to the rules of the source language, and produces a syntax tree corresponding to the source code.
+## Структура
+
+**src/tokenization.hpp** -- отвечает за лексический анализ. Текст преобразуется в токены. \
+**src/parser.hpp** -- отвечает за синтаксческий анализ, построение синтаксического дерева. \
+**src/arena.hpp** -- отвечает за управление памятью. Выделяется большой блок памяти и далее по мере необходимости выделяются более мелкие кусочки памяти для синтаксческого дерева. \
+**src/generation.hpp** -- отвечает за генерацию кода ассемблера. Синтаксическое дерево обходится сверху вниз: (для выражения let x = 5 + 3)
+```mermaid
+graph TD
+    Prog[nodeProg] --> Stmt[nodeStmt]
+    Stmt --> Let[nodeStmtLet]
+    Let --> Ident[ident: x]
+    Let --> Expr[nodeExpr]
+    Expr --> Add[nodeBinExpr +]
+    Add --> Left[nodeTerm]
+    Add --> Right[nodeTerm]
+    Left --> Int1[5]
+    Right --> Int2[3]
+```
+
+## Требования
+
+- CMake 3.20+
+- Компилятор с поддержкой C++17 (g++/clang)
+- NASM (для ассемблирования)
+
+```bash
+# Установка зависимостей (Ubuntu/Debian)
+sudo apt install cmake g++ nasm
+```
