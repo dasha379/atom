@@ -27,16 +27,15 @@ echo $?
 **src/parser.hpp** -- отвечает за синтаксческий анализ, построение синтаксического дерева. \
 **src/arena.hpp** -- отвечает за управление памятью. Выделяется большой блок памяти и далее по мере необходимости выделяются более мелкие кусочки памяти для синтаксческого дерева. \
 **src/generation.hpp** -- отвечает за генерацию кода ассемблера. Синтаксическое дерево обходится сверху вниз: (для выражения let x = 5 + 3)
-
 ```mermaid
 graph TD
-    Prog[nodeProg<br/>(корень)] --> Stmt[nodeStmt<br/>(let)]
-    Stmt --> StmtLet[nodeStmtLet]
-    StmtLet --> Ident[ident<br/>"x"]
-    StmtLet --> Expr[nodeExpr]
-    Expr --> BinExpr[nodeBinExpr<br/>(сложение)]
-    BinExpr --> Term1[nodeTerm]
-    BinExpr --> Term2[nodeTerm]
-    Term1 --> Int1[nodeTermIntLit<br/>5]
-    Term2 --> Int2[nodeTermIntLit<br/>3]
+    Prog[nodeProg] --> Stmt[nodeStmt]
+    Stmt --> Let[nodeStmtLet]
+    Let --> Ident[ident: x]
+    Let --> Expr[nodeExpr]
+    Expr --> Add[nodeBinExpr +]
+    Add --> Left[nodeTerm]
+    Add --> Right[nodeTerm]
+    Left --> Int1[5]
+    Right --> Int2[3]
 ```
