@@ -21,8 +21,11 @@ cmake --build build
 ## Запуск
 ```bash
 cd build
+# копиляция программы
 ./atom ../test.at
+# запуск скомпилированного файла
 ./out
+# просмотр кода возврата
 echo $?
 ```
 
@@ -43,4 +46,15 @@ graph TD
     Add --> Right[nodeTerm]
     Left --> Int1[5]
     Right --> Int2[3]
+```
+
+## Требования
+
+- CMake 3.10+
+- Компилятор с поддержкой C++17 (g++/clang)
+- NASM (для ассемблирования)
+
+```bash
+# Установка зависимостей (Ubuntu/Debian)
+sudo apt install cmake g++ nasm
 ```
