@@ -2,12 +2,13 @@
 
 std::optional<int> bin_prec(TokenType type){
     switch(type){
+        case TokenType::eqeq: return 0;
         case TokenType::minus:
         case TokenType::plus:
-            return 0;
+            return 1;
         case TokenType::fslash:
         case TokenType::star:
-            return 1;
+            return 2;
         default:
             return {};
     }
@@ -31,6 +32,8 @@ std::string to_string(const TokenType type){
             return "let";
         case TokenType::eq:
             return "=";
+        case TokenType::eqeq:
+            return "==";
         case TokenType::plus:
             return "+";
         case TokenType::star:
@@ -54,7 +57,7 @@ std::string to_string(const TokenType type){
 
 struct Token;
 
-Tokenizer::Tokenizer(std::string src) : m_src(std::move(src)){};
+Tokenizer::Tokenizer(std::string src) : m_src(std::move(src)){}
 
 std::vector<Token> Tokenizer::tokenize(){
     int line_count = 1;
@@ -130,6 +133,11 @@ std::vector<Token> Tokenizer::tokenize(){
             consume();
             tokens.push_back({.type = TokenType::semi, .line = line_count});
             continue;
+        }
+        else if (peek().value() == '=' && peek(1).has_value() && peek(1).value() == '='){
+            consume();
+            consume();
+            tokens.push_back({.type = TokenType::eqeq, .line = line_count});
         }
         else if (peek().value() == '='){
             consume();

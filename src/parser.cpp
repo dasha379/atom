@@ -8,6 +8,11 @@ void Parser::error_expected(const std::string& msg) const{
 }
 
 std::optional<nodeTerm*> Parser::parse_term(){
+    if (!peek().has_value()) {
+        std::cerr << "parse_term: no token to parse" << std::endl;
+        return {};
+    }
+
     if (peek().has_value() && peek().value().type == TokenType::int_lit){
         auto term_int_lit = m_allocator.alloc<nodeTermIntLit>();
         term_int_lit->int_lit = consume();
@@ -23,6 +28,8 @@ std::optional<nodeTerm*> Parser::parse_term(){
         return term;
     }
     else if (peek().has_value() && peek().value().type == TokenType::open_paren){
+        consume();
+
         const auto expr = parse_expr(0);
         if (!expr.has_value()){
             error_expected("expression");
@@ -30,6 +37,8 @@ std::optional<nodeTerm*> Parser::parse_term(){
         if (!(peek().has_value() && peek().value().type == TokenType::close_paren)) {
             error_expected("')'");
         }
+        consume();
+
         auto term_paren = m_allocator.alloc<nodeTermParen>();
         term_paren->expr = expr.value();
         auto term = m_allocator.alloc<nodeTerm>();
@@ -41,17 +50,23 @@ std::optional<nodeTerm*> Parser::parse_term(){
 }
 
 std::optional<nodeExpr*> Parser::parse_expr(int min_prec = 0){
+
     std::optional<nodeTerm*> term_lhs = parse_term();
     if (!term_lhs.has_value()) return {};
+
     auto expr_lhs = m_allocator.alloc<nodeExpr>();
     expr_lhs->var = term_lhs.value();
+
     while (true){
         std::optional<Token> curr_token = peek();
-        std::optional<int> prec;
-        if (curr_token.has_value()) {
-            prec = bin_prec(curr_token->type);
-            if (!prec.has_value() || prec < min_prec) break;
-        } else break;
+
+        if (!curr_token.has_value() || curr_token->type == TokenType::close_paren || curr_token->type == TokenType::close_curly || curr_token->type == TokenType::semi) {
+            break;
+        }
+
+        std::optional<int> prec = bin_prec(curr_token->type);
+        if (prec < min_prec) break;
+
         Token op = consume();
         int next_min_prec = prec.value() + 1;
         auto expr_rhs = parse_expr(next_min_prec);
@@ -87,7 +102,14 @@ std::optional<nodeExpr*> Parser::parse_expr(int min_prec = 0){
             div->lhs = expr_lhs2;
             div->rhs = expr_rhs.value();
             expr->var = div;
+        } else if (op.type == TokenType::eqeq){
+            auto eq_expr = m_allocator.alloc<nodeBinExprEq>();
+            expr_lhs2->var = expr_lhs->var;
+            eq_expr->lhs = expr_lhs2;
+            eq_expr->rhs = expr_rhs.value();
+            expr->var = eq_expr;
         }
+
         expr_lhs->var = expr;
     }
     return expr_lhs;
@@ -124,7 +146,7 @@ std::optional<nodeIfPred*> Parser::parse_if_pred(){
             std::cerr << "expected scope\n";
             exit(EXIT_FAILURE);
         }
-        elif->pred = parse_if_pred(); // recursive
+        elif->pred = parse_if_pred();
         auto pred = m_allocator.alloc<nodeIfPred>();
         pred->var = elif;
         return pred;
@@ -226,6 +248,7 @@ std::optional<nodeStmt*> Parser::parse_stmt(){
         // ======= { блок } =======
 
         else if (peek().has_value() && peek().value().type == TokenType::open_curly){
+            consume();
             if (auto scope = parse_scope()) {
                 auto stmt = m_allocator.alloc<nodeStmt>();
                 stmt->var = scope.value();
@@ -240,23 +263,33 @@ std::optional<nodeStmt*> Parser::parse_stmt(){
 
         else if (peek().has_value() && peek().value().type == TokenType::if_){
             consume();
+
             if (peek().has_value() && peek().value().type == TokenType::open_paren){
                 consume();
             } else {
                 std::cerr << "expected '('\n";
                 exit(EXIT_FAILURE);
             }
+
             auto stmt_if = m_allocator.alloc<nodeStmtIf>();
+
             if (auto expr = parse_expr()){
                 stmt_if->expr = expr.value();
             } else {
                 std::cerr << "expected condition\n";
                 exit(EXIT_FAILURE);
             }
-            if (peek().has_value() && peek().value().type == TokenType::close_paren){
+
+            if (!peek().has_value() || peek().value().type != TokenType::close_paren){
+                std::cerr << "expected ')', got " << (peek().has_value() ? to_string(peek()->type) : "EOF") << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            consume();
+
+            if (peek().has_value() && peek().value().type == TokenType::open_curly) {
                 consume();
             } else {
-                std::cerr << "expected ')'\n";
+                std::cerr << "expected '{' after if condition\n";
                 exit(EXIT_FAILURE);
             }
             if (auto scope = parse_scope()){
@@ -272,6 +305,8 @@ std::optional<nodeStmt*> Parser::parse_stmt(){
         }
         else return {};
     }
+
+    return {};
 }
 
 std::optional<nodeProg> Parser::parse_prog(){

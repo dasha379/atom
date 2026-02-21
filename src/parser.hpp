@@ -29,8 +29,13 @@ struct nodeBinExprDiv{
     nodeExpr* rhs;
 };
 
+struct nodeBinExprEq{
+    nodeExpr* lhs;
+    nodeExpr* rhs;
+};
+
 struct nodeBinExpr{
-    std::variant<nodeBinExprAdd*, nodeBinExprMulti*, nodeBinExprDiv*, nodeBinExprSub*> var;
+    std::variant<nodeBinExprEq*, nodeBinExprAdd*, nodeBinExprMulti*, nodeBinExprDiv*, nodeBinExprSub*> var;
 };
 
 struct nodeTermIntLit{
@@ -115,7 +120,7 @@ public:
 private:
     const std::vector<Token> m_tokens;
     size_t m_index = 0;
-    [[nodiscard]] inline std::optional<Token> peek(int offset = 0) const {
+    std::optional<Token> peek(int offset = 0) const {
         if (m_index + offset >= m_tokens.size()) return {};
         return m_tokens[m_index + offset];
     }

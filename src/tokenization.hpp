@@ -13,6 +13,7 @@ enum class TokenType{
     ident,
     let,
     eq,
+    eqeq,
     plus,
     star,
     minus,

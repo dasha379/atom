@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
-Generator::Generator(nodeProg prog) : m_prog(std::move(prog)) {} //constructor:0
+Generator::Generator(nodeProg prog) : m_prog(std::move(prog)) {}
 
 void Generator::gen_term(const nodeTerm* term){
     struct TermVisitor{
@@ -48,8 +48,8 @@ void Generator::gen_bin_expr(const nodeBinExpr* bin_expr)
         void operator() (const nodeBinExprAdd* add) const{
             gen.gen_expr(add->rhs);
             gen.gen_expr(add->lhs);
-            gen.pop("rbx");
             gen.pop("rax");
+            gen.pop("rbx");
             gen.m_output << "    add rbx, rax\n";
             gen.push("rbx");
         }
@@ -67,6 +67,19 @@ void Generator::gen_bin_expr(const nodeBinExpr* bin_expr)
             gen.pop("rax");
             gen.pop("rbx");
             gen.m_output << "    div rbx\n";
+            gen.push("rax");
+        }
+        void operator() (const nodeBinExprEq* eq) const{
+            gen.gen_expr(eq->rhs);
+            gen.gen_expr(eq->lhs);
+
+            gen.pop("rbx");
+            gen.pop("rax");
+
+            gen.m_output << "    cmp rbx, rax\n";
+            gen.m_output << "    sete al\n";
+            gen.m_output << "    movzx rax, al\n";
+
             gen.push("rax");
         }
     };
@@ -178,7 +191,7 @@ void Generator::gen_stmt(const nodeStmt* stmt)
                 gen.m_output << end_label.value() << ":\n";
             }
             else{
-                gen.m_output << label << '\n';
+                gen.m_output << label << ":\n";
             }
             gen.m_output << "    ;; /if\n";
         }
